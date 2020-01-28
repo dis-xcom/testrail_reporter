@@ -68,6 +68,7 @@ class CaseMapper(object):
         xunit_dict = {
             'classname': case.classname,
             'methodname': case.methodname,
+            'description': case.description,
             'id': case.report_id or find_id(case.methodname),
             'uuid': find_uuid(case.methodname)
         }
@@ -162,7 +163,8 @@ class CaseMapper(object):
                     case = {
                         "title": xunit_id,
                         "milestone_id": testrail_milestone_id,
-                        "custom_test_case_description": xunit_id,
+                        "custom_test_case_description":
+                            str(self.get_xunit_descr(xunit_case)),
                         "custom_test_case_steps": steps,
                     }
                     case.update(testrail_case_custom_fields or {})
@@ -213,6 +215,13 @@ class TemplateCaseMapper(CaseMapper):
             return str(xunit_id)[:self.testrail_case_max_name_lenght]
         else:
             return xunit_id
+
+    def get_xunit_descr(self, xunit_case):
+        xunit_dict = self.describe_xunit_case(xunit_case)
+        if 'description' in xunit_dict:
+            return xunit_dict['description']
+        else:
+            return xunit_dict['methodname']
 
     def get_suitable_cases(self, xunit_case, cases):
         try:
