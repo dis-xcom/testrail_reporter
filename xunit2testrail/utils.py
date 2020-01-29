@@ -142,7 +142,9 @@ class CaseMapper(object):
         custom_case_fields = testrail_suite.get_custom_case_fields()
         custom_case_items = ["{}:\n{}".format(
                 x['system_name'],
-                x['configs'][0]['options']['items'] if 'items' in x['configs'][0]['options'] else '')
+                x['configs'][0]['options']['items']
+                if x['configs'] and 'items' in x['configs'][0]['options']
+                else '')
             for x in custom_case_fields]
         logger.info("Available custom fields for cases: \n{}"
                     .format("\n".join(custom_case_items)))
