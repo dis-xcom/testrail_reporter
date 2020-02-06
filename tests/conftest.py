@@ -248,7 +248,7 @@ def milestone(project):
 @pytest.fixture
 def plan(project):
     plans = project.plans()
-    return plans[0]
+    return next(p for p in plans if p.id == 8)
 
 
 @pytest.fixture
