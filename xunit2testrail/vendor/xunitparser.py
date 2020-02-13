@@ -44,6 +44,7 @@ class TestCase(unittest.TestCase):
     TR_CLASS = TestResult
     stdout = None
     stderr = None
+    result = 'success'
 
     def __init__(self, classname, methodname, id=None):
         super(TestCase, self).__init__()

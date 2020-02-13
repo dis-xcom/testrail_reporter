@@ -135,7 +135,7 @@ class CaseMapper(object):
         """Return all suitable testrail cases for xunit case."""
 
     def map(self, xunit_suite, testrail_cases, testrail_suite,
-            testrail_milestone_id, allow_duplicates=False,
+            testrail_milestone_id, allow_duplicates=False, send_skipped=False,
             testrail_add_missing_cases=False, testrail_case_custom_fields=None,
             testrail_case_section_name=None, dry_run=False):
         mapping = []
@@ -151,6 +151,11 @@ class CaseMapper(object):
                     .format("\n".join(custom_case_items)))
 
         for xunit_case in xunit_suite:
+            if not send_skipped and xunit_case.skipped:
+                # Do not create test cases for skipped results
+                # if send_skipped==False
+                continue
+
             suitable_cases = self.get_suitable_cases(xunit_case,
                                                      testrail_cases)
             if len(suitable_cases) == 0:

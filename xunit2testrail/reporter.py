@@ -229,6 +229,7 @@ class Reporter(object):
                                     self.suite,
                                     self.milestone.id,
                                     self.send_duplicates,
+                                    self.send_skipped,
                                     self.testrail_add_missing_cases,
                                     self.testrail_case_custom_fields,
                                     self.testrail_case_section_name,
