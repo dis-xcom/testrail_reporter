@@ -50,6 +50,9 @@ def parse_args(args):
         'XUNIT_REPORT': 'report.xml',
         'XUNIT_NAME_TEMPLATE': '{id}',
         'TESTRAIL_NAME_TEMPLATE': '{custom_report_label}',
+        'TESTRAIL_RUN_DESCRIPTION': (
+            'Run **{test_run_name}** on #{test_plan_name}. \n'
+            '[Test results]({test_results_link})'),
         'ISO_ID': None,
         'TESTRAIL_PLAN_NAME': None,
         'ENV_DESCRIPTION': '',
@@ -186,6 +189,11 @@ def parse_args(args):
         default=False,
         help='don\'t create new test run if such already exists')
     parser.add_argument(
+        '--testrail-run-description',
+        type=str_cls,
+        default=defaults['TESTRAIL_RUN_DESCRIPTION'],
+        help='Use the specified description for *new* test runs')
+    parser.add_argument(
         '--dry-run', '-n',
         action='store_true',
         default=False,
@@ -272,7 +280,9 @@ def main(args=None):
             logger.warning('No cases matched, program will terminated')
             return
         plan = reporter.get_or_create_plan()
-        test_run = reporter.get_or_create_test_run(plan, cases)
+        run_description = args.testrail_run_description
+        test_run = reporter.get_or_create_test_run(plan, cases,
+                                                   run_description)
         test_run.add_results_for_cases(cases)
         reporter.print_run_url(test_run)
     else:

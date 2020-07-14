@@ -243,14 +243,14 @@ class Reporter(object):
         return filtered_cases
 
     def create_test_run(self, name, plan, cases,
-                        config_ids=None, selected_config=None):
+                        config_ids=None, selected_config=None,
+                        run_description=''):
         if config_ids is None:
             config_ids = []
-        description = ('Run **{name}** on #{plan_name}. \n'
-                       '[Test results]({self.test_results_link})').format(
-                           name=name,
-                           plan_name=self.plan_name,
-                           self=self)
+        description = run_description.format(
+            test_run_name=name,
+            test_plan_name=self.plan_name,
+            test_results_link=self.test_results_link)
         run = Run(name=name,
                   description=description,
                   suite_id=self.suite.id,
@@ -263,7 +263,7 @@ class Reporter(object):
             plan.add_run(run)
         return run
 
-    def get_or_create_test_run(self, plan, cases):
+    def get_or_create_test_run(self, plan, cases, run_description=''):
         # run name can't have whitespaces in the beginning or in the end
         # because they are silently trimmed by server side (API or database)
         run_name_with_env = ("{0.env_description} "
@@ -303,7 +303,8 @@ class Reporter(object):
                     create_new_entry = False
         return self.create_test_run(run_name, plan,
                                     cases, config_ids,
-                                    selected_config if create_new_entry else None)
+                                    selected_config if create_new_entry else None,
+                                    run_description)
 
     def print_run_url(self, test_run):
         print('[TestRun URL] {}'.format(test_run.url))
