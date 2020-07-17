@@ -50,9 +50,7 @@ def parse_args(args):
         'XUNIT_REPORT': 'report.xml',
         'XUNIT_NAME_TEMPLATE': '{id}',
         'TESTRAIL_NAME_TEMPLATE': '{custom_report_label}',
-        'TESTRAIL_RUN_DESCRIPTION': (
-            'Run **{test_run_name}** on #{test_plan_name}. \n'
-            '[Test results]({test_results_link})'),
+        'TESTRAIL_RUN_DESCRIPTION': None,
         'ISO_ID': None,
         'TESTRAIL_PLAN_NAME': None,
         'ENV_DESCRIPTION': '',

@@ -247,10 +247,13 @@ class Reporter(object):
                         run_description=''):
         if config_ids is None:
             config_ids = []
-        description = run_description.format(
-            test_run_name=name,
-            test_plan_name=self.plan_name,
-            test_results_link=self.test_results_link)
+        default_description = (
+            'Run **{test_run_name}** on #{test_plan_name}. \n'
+            '[Test results]({test_results_link})'.format(
+                test_run_name=name,
+                test_plan_name=self.plan_name,
+                test_results_link=self.test_results_link))
+        description = run_description or default_description
         run = Run(name=name,
                   description=description,
                   suite_id=self.suite.id,
