@@ -200,8 +200,8 @@ class Parser(object):
         tc = self.TC_CLASS(tc_classname, el.attrib['name'], tc_id)
         tc.seed('success', trace=el.text or None)
         tc.time = to_timedelta(el.attrib.get('time'))
-        message = None
-        text = None
+        message = ''
+        text = el.attrib.get('text') or ''
         for e in el:
             # error takes over failure in JUnit 4
             if e.tag in ('failure', 'error', 'skipped'):
@@ -209,9 +209,10 @@ class Parser(object):
                 result = e.tag
                 typename = e.attrib.get('type')
 
-                # reuse old if empty
-                message = e.attrib.get('message') or message
-                text = e.text or text
+                msg = e.attrib.get('message')
+                if msg:
+                    message += "**Reason:**\n" + msg
+                text += e.text or ''
 
                 tc.seed(result, typename, message, text)
                 tc.time = to_timedelta(el.attrib.get('time'))
@@ -219,7 +220,10 @@ class Parser(object):
                 tc.stdout = e.text.strip()
             if e.tag == 'system-err' and e.text:
                 tc.stderr = e.text.strip()
+            if e.tag == 'properties':
+                message += self.parse_tc_properties(e, tc)
 
+        tc.message = message
         # get rid of any spaces at the end of tc name
         tc.methodname = tc.methodname.strip()
         # TestRail doesn't support tc titles >250 chars
@@ -228,6 +232,16 @@ class Parser(object):
             tc.methodname = tc.methodname[:250 - 10] + "...(" + hash + ")"
         # add either the original "success" tc or a tc created by elements
         ts.addTest(tc)
+
+    def parse_tc_properties(self, el, tc):
+        message = ''
+        for e in el:
+            if e.tag == 'property':
+                attr_name = e.attrib['name']
+                attr_value = e.attrib['value']
+                if attr_name == "__doc__":
+                    message += '\n'.join(attr_value.split('\\n'))
+        return message
 
     def parse_properties(self, el, ts):
         for e in el:
