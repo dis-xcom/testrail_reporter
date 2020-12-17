@@ -41,6 +41,7 @@ class Collection(object):
     def __init__(self, item_class=None, parent_id=None, **kwargs):
         self._item_class = item_class
         self._handler = self._item_class._handler
+        self._pagination_handler = self._item_class._pagination_handler
         self.parent_id = parent_id
         for k, v in kwargs.items():
             setattr(self, k, v)
@@ -69,7 +70,7 @@ class Collection(object):
         url = self._list_url.format(name=name)
         if self.parent_id is not None:
             url += '/{}'.format(self.parent_id)
-        return self._handler('GET', url, params=params)
+        return self._pagination_handler(url=url, name=name, params=params)
 
     def _add(self, name, data, **kwargs):
         url = self._add_url.format(name=name)
@@ -114,6 +115,36 @@ class Item(object):
     @classmethod
     def _api_name(cls):
         return cls.__name__.lower()
+
+    @classmethod
+    def _pagination_handler(cls, url, name, params=None):
+        """
+        :param name: Name of the key in the response (single),
+                     which contains the current portion of list of the objects
+        """
+        key_name = f"{name}s"
+        params = params or {}
+        # TODO(ddmitriev): remove 'beta' header after 26 Feb 2021
+        # https://blog.gurock.com/announcing-testrail-6-7/
+        # https://mirantis.jira.com/browse/PRODX-10103
+        extra_headers = {'x-api-ident': 'beta'}
+
+        res = cls._handler('GET', url, extra_headers, params=params)
+        if type(res) is list:
+            # Backward compatibility for unmodified APIs
+            logger.info(f"Keep backward compatibility for '{name}' because "
+                        f"pagination API is not enabled")
+            return res
+        elif type(res) is not dict:
+            raise Exception(f"Response from pagination api {url} "
+                            f"is not Dict: {res}")
+
+        result = res[key_name]
+        while res.get('_links', {}).get('next') is not None:
+            url = res['_links']['next']
+            res = cls._handler('GET', url, extra_headers, params=params)
+            result.extend(res[key_name])
+        return result
 
     def __getattr__(self, name):
         if name in self._data:
@@ -185,11 +216,11 @@ class Suite(Item):
     def sections(self):
         url = 'get_sections/{}&suite_id={}'.format(self.project_id,
                                                    self.id)
-        return self._handler('GET', url)
+        return self._pagination_handler(url, name='section')
 
     def get_custom_case_fields(self):
         url = 'get_case_fields'
-        return self._handler('GET', url)
+        return self._pagination_handler(url, name='case_field')
 
     def get_section_by_name(self, section_name):
         return [section for section in self.sections
@@ -283,7 +314,9 @@ class Plan(Item):
         }
 
         result = self._handler('POST', url, json=entry)
-        new_run_data = [r for r in result['runs'] if set(r['config_ids']) == set(run_data['config_ids'])][0]
+        new_run_data = [
+            r for r in result['runs']
+            if set(r['config_ids']) == set(run_data['config_ids'])][0]
         run.id = new_run_data.pop('id')
         run.data.update(new_run_data)
 
@@ -420,13 +453,22 @@ class Client(object):
         self.username = username
         self.password = password
         self.request_timeout = request_timeout
-        self.base_url = base_url.rstrip('/') + '/index.php?/api/v2/'
+        self.base_url_root = base_url.rstrip('/') + '/index.php?'
+        self.base_url = self.base_url_root + '/api/v2/'
 
         Item._handler = self._query
 
-    def _query(self, method, url, **kwargs):
-        url = self.base_url + url
+    def _query(self, method, url, extra_headers=None, **kwargs):
+        if url.startswith('/api/v2/'):
+            # for pagination APIs
+            url = self.base_url_root + url
+        else:
+            url = self.base_url + url
+
         headers = {'Content-type': 'application/json'}
+        if extra_headers:
+            headers.update(extra_headers)
+
         logger.debug('Make {} request to {}'.format(method, url))
 
         def _time_sleep(resp, min_interval=300, max_interval=600):
